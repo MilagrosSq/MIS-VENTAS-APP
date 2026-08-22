@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#c98fa9">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Mis Ventas</title>
+<style>
+:root{--bg:#f8f4f6;--card:#fff;--text:#2d272b;--muted:#81747c;--pink:#c98fa9;--pink2:#edd9e2;--danger:#b05268;--line:#e8dfe4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:linear-gradient(135deg,#fff,#f1dce5);padding:24px 16px 18px;position:sticky;top:0;z-index:10}
+h1{margin:0;font-size:27px}h2{font-size:18px;margin:0 0 14px}.sub{margin:4px 0 0;color:var(--muted);font-size:13px}
+nav{display:flex;gap:8px;overflow:auto;padding:10px 0 0}nav button{white-space:nowrap;background:#fff;color:#6b5360;border:1px solid var(--line)}
+nav button.active{background:var(--pink);color:#fff;border-color:var(--pink)}
+main{max-width:1050px;margin:auto;padding:14px}.card{background:var(--card);border-radius:19px;padding:17px;margin-bottom:14px;box-shadow:0 5px 24px #0000000b}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.full{grid-column:1/-1}
+label{display:block;font-size:12px;font-weight:750;color:#675b62;margin-bottom:6px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit}textarea{min-height:80px;resize:vertical}
+button{border:0;border-radius:10px;padding:11px 14px;font-weight:750;cursor:pointer}.primary{background:var(--pink);color:#fff}.soft{background:var(--pink2);color:#654b59}.danger{background:#f7dfe5;color:var(--danger)}.ghost{background:#f5f1f3;color:#665961}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#fbf8f9;border-radius:14px;padding:13px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:20px;margin-top:4px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.toolbar input{max-width:330px}
+.table{overflow:auto}table{border-collapse:collapse;width:100%;min-width:900px;font-size:13px}th,td{padding:9px 7px;text-align:left;border-bottom:1px solid #eee}th{font-size:11px;color:var(--muted)}.profit{font-weight:800;color:#89556f}
+.products{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.product{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#fff}.product img{width:100%;height:150px;object-fit:cover;background:#f5eff2}.product .pbody{padding:12px}.product h3{margin:0 0 5px;font-size:15px}.product p{margin:3px 0;color:var(--muted);font-size:12px}.stock-low{color:var(--danger);font-weight:800}
+.thumb{width:42px;height:42px;object-fit:cover;border-radius:8px;vertical-align:middle;margin-right:6px}
+.notice{font-size:12px;color:#715e68;background:#fff7fa;border:1px solid #efdae3;border-radius:11px;padding:10px;margin-top:10px}
+.hidden{display:none}.empty{text-align:center;padding:24px;color:var(--muted)}
+@media(max-width:700px){.grid,.stats{grid-template-columns:1fr 1fr}.products{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.grid,.stats,.products{grid-template-columns:1fr}.full{grid-column:auto}header{padding:20px 13px 12px}main{padding:10px}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+<h1>Mis Ventas ✨</h1><p class="sub">Tu emprendimiento, organizado en un solo lugar</p>
+<nav>
+<button id="nInicio" onclick="show('inicio')" class="active">🏠 Inicio</button>
+<button id="nProductos" onclick="show('productos')">📦 Productos</button>
+<button id="nVenta" onclick="show('venta')">➕ Nueva venta</button>
+<button id="nVentas" onclick="show('ventas')">🧾 Ventas</button>
+</nav>
+</header>
+<main>
+
+<section id="inicio" class="page">
+<div class="card"><h2>📊 Resumen</h2><div class="stats">
+<div class="stat"><small>Ventas</small><strong id="sVentas">$0</strong></div>
+<div class="stat"><small>Ganancia</small><strong id="sGanancia">$0</strong></div>
+<div class="stat"><small>Productos</small><strong id="sProductos">0</strong></div>
+<div class="stat"><small>Stock bajo</small><strong id="sBajo">0</strong></div>
+</div></div>
+<div class="card"><h2>⚠️ Para reponer</h2><div id="bajo"></div></div>
+</section>
+
+<section id="productos" class="page hidden">
+<div class="card"><h2>📦 Agregar producto</h2>
+<div class="grid">
+<div><label>Nombre *</label><input id="pNombre" placeholder="Ej. Body negro"></div>
+<div><label>Categoría</label><input id="pCategoria" placeholder="Ej. Indumentaria"></div>
+<div><label>Costo unitario *</label><input id="pCosto" type="number" min="0" step=".01"></div>
+<div><label>Precio de venta *</label><input id="pPrecio" type="number" min="0" step=".01"></div>
+<div><label>Stock inicial *</label><input id="pStock" type="number" min="0" step="1" value="0"></div>
+<div><label>Stock mínimo</label><input id="pMin" type="number" min="0" step="1" value="2"></div>
+<div><label>Proveedor / tienda</label><input id="pProveedor" placeholder="Dónde lo compraste"></div>
+<div><label>Foto del producto</label><input id="pFoto" type="file" accept="image/*"></div>
+<div class="full"><label>Notas</label><textarea id="pNotas" placeholder="Color, talle, modelo, ubicación, etc."></textarea></div>
+</div>
+<div class="actions"><button class="primary" onclick="guardarProducto()">Guardar producto</button><button class="soft" onclick="limpiarProducto()">Limpiar</button></div>
+<div class="notice">La foto se guarda en este dispositivo. Para no perder tus productos al cambiar de teléfono, usá “Copia de seguridad” en Ventas.</div>
+</div>
+<div class="card"><h2>🛍️ Mis productos</h2><div class="toolbar"><input id="buscarProducto" placeholder="🔎 Buscar producto..." oninput="renderProductos()"></div><div id="listaProductos" class="products"></div></div>
+</section>
+
+<section id="venta" class="page hidden">
+<div class="card"><h2>➕ Registrar venta</h2>
+<div class="grid">
+<div class="full"><label>Producto *</label><select id="vProducto" onchange="actualizarVenta()"><option value="">Elegí un producto</option></select></div>
+<div><label>Cantidad *</label><input id="vCantidad" type="number" min="1" step="1" value="1" oninput="actualizarVenta()"></div>
+<div><label>Precio total</label><input id="vTotal" readonly></div>
+<div><label>Costo total</label><input id="vCosto" readonly></div>
+<div><label>Ganancia</label><input id="vGanancia" readonly></div>
+<div><label>Cliente</label><input id="vCliente" placeholder="Nombre"></div>
+<div><label>Fecha</label><input id="vFecha" type="date"></div>
+<div class="full"><label>Notas</label><textarea id="vNotas" placeholder="Método de pago, talle, entrega, etc."></textarea></div>
+</div>
+<div id="vInfo" class="notice">Elegí un producto para ver precio y stock.</div>
+<div class="actions"><button class="primary" onclick="guardarVenta()">Confirmar venta y descontar stock</button><button class="soft" onclick="limpiarVenta()">Limpiar</button></div>
+</div>
+</section>
+
+<section id="ventas" class="page hidden">
+<div class="card"><h2>🧾 Historial de ventas</h2>
+<div class="toolbar"><input id="buscarVenta" placeholder="🔎 Buscar producto o cliente" oninput="renderVentas()"><input id="fMes" type="month" onchange="renderVentas()"></div>
+<div class="actions"><button class="soft" onclick="backup()">💾 Copia de seguridad</button><button class="soft" onclick="document.getElementById('restore').click()">↩️ Restaurar copia</button><button class="danger" onclick="borrarTodo()">Borrar todos los datos</button><input id="restore" type="file" accept=".json" class="hidden" onchange="restore(event)"></div>
+<div class="table"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Cant.</th><th>Cliente</th><th>Venta</th><th>Costo</th><th>Ganancia</th><th></th></tr></thead><tbody id="tablaVentas"></tbody></table></div>
+</div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let db=JSON.parse(localStorage.getItem("misVentasDB")||'{"productos":[],"ventas":[]}');
+$("vFecha").value=new Date().toISOString().slice(0,10);
+function money(n){return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0)}
+function save(){localStorage.setItem("misVentasDB",JSON.stringify(db))}
+function show(id){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));$(id).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));let m={inicio:"nInicio",productos:"nProductos",venta:"nVenta",ventas:"nVentas"};$(m[id]).classList.add("active");if(id==="productos")renderProductos();if(id==="venta")fillSelect();if(id==="ventas")renderVentas();if(id==="inicio")renderInicio();scrollTo(0,0)}
+function guardarProducto(){
+ let nombre=$("pNombre").value.trim(),c=+$("pCosto").value||0,pr=+$("pPrecio").value||0,st=Math.max(0,+$("pStock").value||0);
+ if(!nombre||c<0||pr<=0){alert("Completá nombre, costo y precio de venta.");return}
+ let f=$("pFoto").files[0], done=photo=>{db.productos.push({id:Date.now(),nombre,categoria:$("pCategoria").value.trim(),costo:c,precio:pr,stock:st,min:+$("pMin").value||0,proveedor:$("pProveedor").value.trim(),foto:photo||"",notas:$("pNotas").value.trim()});save();limpiarProducto();renderProductos();alert("Producto guardado.");};
+ if(f){let r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}else done("")
+}
+function limpiarProducto(){["pNombre","pCategoria","pCosto","pPrecio","pProveedor","pNotas"].forEach(x=>$(x).value="");$("pStock").value=0;$("pMin").value=2;$("pFoto").value=""}
+function renderProductos(){
+ let q=$("buscarProducto").value.toLowerCase(), arr=db.productos.filter(p=>(p.nombre+" "+p.categoria+" "+p.proveedor).toLowerCase().includes(q));
+ $("listaProductos").innerHTML=arr.length?arr.map(p=>`<div class="product">${p.foto?`<img src="${p.foto}">`:`<div style="height:150px;display:grid;place-items:center;background:#f5eff2;font-size:45px">📦</div>`}<div class="pbody"><h3>${esc(p.nombre)}</h3><p>${esc(p.categoria)}</p><p>Costo: ${money(p.costo)} · Venta: ${money(p.precio)}</p><p class="${p.stock<=p.min?'stock-low':''}">Stock: ${p.stock}${p.stock<=p.min?' · REPOSICIÓN':''}</p><p>${esc(p.proveedor)}</p><div class="actions"><button class="danger" onclick="eliminarProducto(${p.id})">Eliminar</button></div></div></div>`).join(""):`<div class="empty">Todavía no cargaste productos.</div>`
+}
+function eliminarProducto(id){if(confirm("¿Eliminar este producto?")){db.productos=db.productos.filter(p=>p.id!==id);save();renderProductos()}}
+function fillSelect(){let s=$("vProducto");s.innerHTML='<option value="">Elegí un producto</option>'+db.productos.map(p=>`<option value="${p.id}">${esc(p.nombre)} — stock ${p.stock}</option>`).join("");actualizarVenta()}
+function actualizarVenta(){let p=db.productos.find(x=>x.id==$("vProducto").value),q=Math.max(1,+$("vCantidad").value||1);if(!p){$("vTotal").value=$("vCosto").value=$("vGanancia").value="";$("vInfo").textContent="Elegí un producto para ver precio y stock.";return}let total=p.precio*q,cost=p.costo*q;$("vTotal").value=money(total);$("vCosto").value=money(cost);$("vGanancia").value=money(total-cost);$("vInfo").textContent=`Stock disponible: ${p.stock}. Después de esta venta quedarían ${p.stock-q}.`}
+function guardarVenta(){let p=db.productos.find(x=>x.id==$("vProducto").value),q=Math.max(1,+$("vCantidad").value||1);if(!p){alert("Elegí un producto.");return}if(q>p.stock){alert("No hay suficiente stock.");return}let total=p.precio*q,cost=p.costo*q;db.ventas.unshift({id:Date.now(),productoId:p.id,producto:p.nombre,cantidad:q,cliente:$("vCliente").value.trim(),fecha:$("vFecha").value,venta:total,costo:cost,ganancia:total-cost,notas:$("vNotas").value.trim()});p.stock-=q;save();alert("Venta guardada y stock actualizado.");limpiarVenta();renderInicio()}
+function limpiarVenta(){$("vProducto").value="";$("vCantidad").value=1;$("vCliente").value="";$("vNotas").value="";$("vFecha").value=new Date().toISOString().slice(0,10);actualizarVenta()}
+function renderVentas(){let q=$("buscarVenta").value.toLowerCase(),m=$("fMes").value,a=db.ventas.filter(v=>(!m||v.fecha.startsWith(m))&&(!q||(v.producto+" "+v.cliente).toLowerCase().includes(q)));$("tablaVentas").innerHTML=a.length?a.map(v=>`<tr><td>${v.fecha}</td><td>${esc(v.producto)}</td><td>${v.cantidad}</td><td>${esc(v.cliente)}</td><td>${money(v.venta)}</td><td>${money(v.costo)}</td><td class="profit">${money(v.ganancia)}</td><td><button class="danger" onclick="eliminarVenta(${v.id})">Eliminar</button></td></tr>`).join(""):`<tr><td colspan="8" class="empty">No hay ventas para mostrar.</td></tr>`}
+function eliminarVenta(id){let v=db.ventas.find(x=>x.id===id);if(!v)return;if(confirm("¿Eliminar esta venta? El stock volverá a sumarse.")){let p=db.productos.find(x=>x.id===v.productoId);if(p)p.stock+=v.cantidad;db.ventas=db.ventas.filter(x=>x.id!==id);save();renderVentas();renderInicio()}}
+function renderInicio(){let total=db.ventas.reduce((s,v)=>s+v.venta,0),gan=db.ventas.reduce((s,v)=>s+v.ganancia,0),b=db.productos.filter(p=>p.stock<=p.min);$("sVentas").textContent=money(total);$("sGanancia").textContent=money(gan);$("sProductos").textContent=db.productos.length;$("sBajo").textContent=b.length;$("bajo").innerHTML=b.length?b.map(p=>`<p><b>${esc(p.nombre)}</b>: quedan ${p.stock} unidades.</p>`).join(""):"<div class='empty'>Todo en orden. No hay productos con stock bajo.</div>"}
+function backup(){let blob=new Blob([JSON.stringify(db)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="mis-ventas-copia-"+new Date().toISOString().slice(0,10)+".json";a.click()}
+function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.productos||!x.ventas)throw 0;db=x;save();renderInicio();alert("Copia restaurada.");}catch{alert("Copia no válida.")}};r.readAsText(f)}
+function borrarTodo(){if(confirm("Esto eliminará productos y ventas. ¿Continuar?")){db={productos:[],ventas:[]};save();renderInicio()}}
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+renderInicio();
+</script>
+</body></html>
