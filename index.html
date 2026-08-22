@@ -65,7 +65,7 @@ button{border:0;border-radius:10px;padding:11px 14px;font-weight:750;cursor:poin
 <div><label>Foto del producto</label><input id="pFoto" type="file" accept="image/*"></div>
 <div class="full"><label>Notas</label><textarea id="pNotas" placeholder="Color, talle, modelo, ubicación, etc."></textarea></div>
 </div>
-<div class="actions"><button class="primary" onclick="guardarProducto()">Guardar producto</button><button class="soft" onclick="limpiarProducto()">Limpiar</button></div>
+<div class="actions"><button id="btnGuardarProducto" class="primary" onclick="guardarProducto()">Guardar producto</button><button id="btnCancelarProducto" class="ghost hidden" onclick="cancelarEdicionProducto()">Cancelar edición</button><button class="soft" onclick="limpiarProducto()">Limpiar</button></div>
 <div class="notice">La foto se guarda en este dispositivo. Para no perder tus productos al cambiar de teléfono, usá “Copia de seguridad” en Ventas.</div>
 </div>
 <div class="card"><h2>🛍️ Mis productos</h2><div class="toolbar"><input id="buscarProducto" placeholder="🔎 Buscar producto..." oninput="renderProductos()"></div><div id="listaProductos" class="products"></div></div>
@@ -99,6 +99,7 @@ button{border:0;border-radius:10px;padding:11px 14px;font-weight:750;cursor:poin
 <script>
 const $=id=>document.getElementById(id);
 let db=JSON.parse(localStorage.getItem("misVentasDB")||'{"productos":[],"ventas":[]}');
+let productoEditando=null;
 $("vFecha").value=new Date().toISOString().slice(0,10);
 function money(n){return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0)}
 function save(){localStorage.setItem("misVentasDB",JSON.stringify(db))}
@@ -106,20 +107,66 @@ function show(id){document.querySelectorAll(".page").forEach(x=>x.classList.add(
 function guardarProducto(){
  let nombre=$("pNombre").value.trim(),c=+$("pCosto").value||0,pr=+$("pPrecio").value||0,st=Math.max(0,+$("pStock").value||0);
  if(!nombre||c<0||pr<=0){alert("Completá nombre, costo y precio de venta.");return}
- let f=$("pFoto").files[0], done=photo=>{db.productos.push({id:Date.now(),nombre,categoria:$("pCategoria").value.trim(),costo:c,precio:pr,stock:st,min:+$("pMin").value||0,proveedor:$("pProveedor").value.trim(),foto:photo||"",notas:$("pNotas").value.trim()});save();limpiarProducto();renderProductos();alert("Producto guardado.");};
+ let f=$("pFoto").files[0];
+ let done=photo=>{
+   if(productoEditando!==null){
+     let p=db.productos.find(x=>x.id===productoEditando);
+     if(!p)return;
+     p.nombre=nombre;p.categoria=$("pCategoria").value.trim();p.costo=c;p.precio=pr;p.stock=st;
+     p.min=+$("pMin").value||0;p.proveedor=$("pProveedor").value.trim();p.notas=$("pNotas").value.trim();
+     if(photo)p.foto=photo;
+     db.ventas.forEach(v=>{if(v.productoId===p.id){v.producto=p.nombre;v.costo=p.costo*v.cantidad;v.venta=p.precio*v.cantidad;v.ganancia=v.venta-v.costo;}});
+     save();cancelarEdicionProducto();renderProductos();renderVentas();renderInicio();alert("Producto actualizado.");
+   }else{
+     db.productos.push({id:Date.now(),nombre,categoria:$("pCategoria").value.trim(),costo:c,precio:pr,stock:st,min:+$("pMin").value||0,proveedor:$("pProveedor").value.trim(),foto:photo||"",notas:$("pNotas").value.trim()});
+     save();limpiarProducto();renderProductos();alert("Producto guardado.");
+   }
+ };
  if(f){let r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}else done("")
 }
+function editarProducto(id){
+ let p=db.productos.find(x=>x.id===id);if(!p)return;
+ productoEditando=id;
+ $("pNombre").value=p.nombre;$("pCategoria").value=p.categoria||"";$("pCosto").value=p.costo;
+ $("pPrecio").value=p.precio;$("pStock").value=p.stock;$("pMin").value=p.min||0;
+ $("pProveedor").value=p.proveedor||"";$("pNotas").value=p.notas||"";$("pFoto").value="";
+ $("btnGuardarProducto").textContent="Guardar cambios";$("btnCancelarProducto").classList.remove("hidden");
+ $("pNombre").scrollIntoView({behavior:"smooth",block:"center"});
+}
+function cancelarEdicionProducto(){productoEditando=null;limpiarProducto();$("btnGuardarProducto").textContent="Guardar producto";$("btnCancelarProducto").classList.add("hidden")}
+
 function limpiarProducto(){["pNombre","pCategoria","pCosto","pPrecio","pProveedor","pNotas"].forEach(x=>$(x).value="");$("pStock").value=0;$("pMin").value=2;$("pFoto").value=""}
 function renderProductos(){
  let q=$("buscarProducto").value.toLowerCase(), arr=db.productos.filter(p=>(p.nombre+" "+p.categoria+" "+p.proveedor).toLowerCase().includes(q));
- $("listaProductos").innerHTML=arr.length?arr.map(p=>`<div class="product">${p.foto?`<img src="${p.foto}">`:`<div style="height:150px;display:grid;place-items:center;background:#f5eff2;font-size:45px">📦</div>`}<div class="pbody"><h3>${esc(p.nombre)}</h3><p>${esc(p.categoria)}</p><p>Costo: ${money(p.costo)} · Venta: ${money(p.precio)}</p><p class="${p.stock<=p.min?'stock-low':''}">Stock: ${p.stock}${p.stock<=p.min?' · REPOSICIÓN':''}</p><p>${esc(p.proveedor)}</p><div class="actions"><button class="danger" onclick="eliminarProducto(${p.id})">Eliminar</button></div></div></div>`).join(""):`<div class="empty">Todavía no cargaste productos.</div>`
+ $("listaProductos").innerHTML=arr.length?arr.map(p=>`<div class="product">${p.foto?`<img src="${p.foto}">`:`<div style="height:150px;display:grid;place-items:center;background:#f5eff2;font-size:45px">📦</div>`}<div class="pbody"><h3>${esc(p.nombre)}</h3><p>${esc(p.categoria)}</p><p>Costo: ${money(p.costo)} · Venta: ${money(p.precio)}</p><p class="${p.stock<=p.min?'stock-low':''}">Stock: ${p.stock}${p.stock<=p.min?' · REPOSICIÓN':''}</p><p>${esc(p.proveedor)}</p><div class="actions"><button class="soft" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="danger" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div></div></div>`).join(""):`<div class="empty">Todavía no cargaste productos.</div>`
 }
 function eliminarProducto(id){if(confirm("¿Eliminar este producto?")){db.productos=db.productos.filter(p=>p.id!==id);save();renderProductos()}}
 function fillSelect(){let s=$("vProducto");s.innerHTML='<option value="">Elegí un producto</option>'+db.productos.map(p=>`<option value="${p.id}">${esc(p.nombre)} — stock ${p.stock}</option>`).join("");actualizarVenta()}
 function actualizarVenta(){let p=db.productos.find(x=>x.id==$("vProducto").value),q=Math.max(1,+$("vCantidad").value||1);if(!p){$("vTotal").value=$("vCosto").value=$("vGanancia").value="";$("vInfo").textContent="Elegí un producto para ver precio y stock.";return}let total=p.precio*q,cost=p.costo*q;$("vTotal").value=money(total);$("vCosto").value=money(cost);$("vGanancia").value=money(total-cost);$("vInfo").textContent=`Stock disponible: ${p.stock}. Después de esta venta quedarían ${p.stock-q}.`}
 function guardarVenta(){let p=db.productos.find(x=>x.id==$("vProducto").value),q=Math.max(1,+$("vCantidad").value||1);if(!p){alert("Elegí un producto.");return}if(q>p.stock){alert("No hay suficiente stock.");return}let total=p.precio*q,cost=p.costo*q;db.ventas.unshift({id:Date.now(),productoId:p.id,producto:p.nombre,cantidad:q,cliente:$("vCliente").value.trim(),fecha:$("vFecha").value,venta:total,costo:cost,ganancia:total-cost,notas:$("vNotas").value.trim()});p.stock-=q;save();alert("Venta guardada y stock actualizado.");limpiarVenta();renderInicio()}
 function limpiarVenta(){$("vProducto").value="";$("vCantidad").value=1;$("vCliente").value="";$("vNotas").value="";$("vFecha").value=new Date().toISOString().slice(0,10);actualizarVenta()}
-function renderVentas(){let q=$("buscarVenta").value.toLowerCase(),m=$("fMes").value,a=db.ventas.filter(v=>(!m||v.fecha.startsWith(m))&&(!q||(v.producto+" "+v.cliente).toLowerCase().includes(q)));$("tablaVentas").innerHTML=a.length?a.map(v=>`<tr><td>${v.fecha}</td><td>${esc(v.producto)}</td><td>${v.cantidad}</td><td>${esc(v.cliente)}</td><td>${money(v.venta)}</td><td>${money(v.costo)}</td><td class="profit">${money(v.ganancia)}</td><td><button class="danger" onclick="eliminarVenta(${v.id})">Eliminar</button></td></tr>`).join(""):`<tr><td colspan="8" class="empty">No hay ventas para mostrar.</td></tr>`}
+function editarVenta(id){
+ let v=db.ventas.find(x=>x.id===id);if(!v)return;
+ let p=db.productos.find(x=>x.id===v.productoId);
+ if(!p){alert("El producto original de esta venta ya no existe.");return}
+ let nuevoProducto=prompt("Producto (escribí el nombre exacto):",p.nombre);
+ if(nuevoProducto===null)return;
+ let np=db.productos.find(x=>x.nombre.toLowerCase()===nuevoProducto.trim().toLowerCase());
+ if(!np){alert("No encontré ese producto. Para cambiar de producto, usá el nombre exacto de un producto existente.");return}
+ let nuevaCantidad=prompt("Cantidad:",v.cantidad);if(nuevaCantidad===null)return;
+ let q=Math.max(1,parseInt(nuevaCantidad,10)||0);if(!q){alert("Cantidad inválida.");return}
+ let nuevoPrecio=prompt("Precio unitario:",np.precio);if(nuevoPrecio===null)return;
+ let precio=Number(nuevoPrecio);if(!(precio>0)){alert("Precio inválido.");return}
+ let nuevaFecha=prompt("Fecha (AAAA-MM-DD):",v.fecha);if(nuevaFecha===null)return;
+ let cliente=prompt("Cliente:",v.cliente||"");if(cliente===null)return;
+ p.stock+=v.cantidad;
+ if(q>np.stock){p.stock-=v.cantidad;alert("No hay suficiente stock para esa cantidad.");return}
+ np.stock-=q;
+ v.productoId=np.id;v.producto=np.nombre;v.cantidad=q;v.cliente=cliente.trim();v.fecha=nuevaFecha;
+ v.venta=precio*q;v.costo=np.costo*q;v.ganancia=v.venta-v.costo;
+ save();renderVentas();renderInicio();alert("Venta actualizada y stock recalculado.");
+}
+function renderVentas(){let q=$("buscarVenta").value.toLowerCase(),m=$("fMes").value,a=db.ventas.filter(v=>(!m||v.fecha.startsWith(m))&&(!q||(v.producto+" "+v.cliente).toLowerCase().includes(q)));$("tablaVentas").innerHTML=a.length?a.map(v=>`<tr><td>${v.fecha}</td><td>${esc(v.producto)}</td><td>${v.cantidad}</td><td>${esc(v.cliente)}</td><td>${money(v.venta)}</td><td>${money(v.costo)}</td><td class="profit">${money(v.ganancia)}</td><td><div class="actions"><button class="soft" onclick="editarVenta(${v.id})">✏️ Editar</button><button class="danger" onclick="eliminarVenta(${v.id})">🗑️ Eliminar</button></div></td></tr>`).join(""):`<tr><td colspan="8" class="empty">No hay ventas para mostrar.</td></tr>`}
 function eliminarVenta(id){let v=db.ventas.find(x=>x.id===id);if(!v)return;if(confirm("¿Eliminar esta venta? El stock volverá a sumarse.")){let p=db.productos.find(x=>x.id===v.productoId);if(p)p.stock+=v.cantidad;db.ventas=db.ventas.filter(x=>x.id!==id);save();renderVentas();renderInicio()}}
 function renderInicio(){let total=db.ventas.reduce((s,v)=>s+v.venta,0),gan=db.ventas.reduce((s,v)=>s+v.ganancia,0),b=db.productos.filter(p=>p.stock<=p.min);$("sVentas").textContent=money(total);$("sGanancia").textContent=money(gan);$("sProductos").textContent=db.productos.length;$("sBajo").textContent=b.length;$("bajo").innerHTML=b.length?b.map(p=>`<p><b>${esc(p.nombre)}</b>: quedan ${p.stock} unidades.</p>`).join(""):"<div class='empty'>Todo en orden. No hay productos con stock bajo.</div>"}
 function backup(){let blob=new Blob([JSON.stringify(db)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="mis-ventas-copia-"+new Date().toISOString().slice(0,10)+".json";a.click()}
